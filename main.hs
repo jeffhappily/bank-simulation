@@ -2,13 +2,10 @@
     --resolver lts-16.10
     --install-ghc
     --ghc-options -Wall
-    --package async
-    --package conduit
     --package random
     --package ghc
     --package mtl
 -}
--- {-# LANGUAGE ConstrainedClassMethods #-}
 {-# LANGUAGE RecordWildCards #-}
 import           Control.Monad
 import           Control.Monad.State
@@ -63,10 +60,10 @@ printPrefix pre a = putStr pre >> putStr ": " >> print a
 
 data Time =
   Time
-    { prevFinish :: Second
-    , prevClock  :: Second
-    , prevQueue :: [Second] -- list of finish time
-    , waitTime   :: [Second]
+    { prevFinish  :: Second
+    , prevClock   :: Second
+    , prevQueue   :: [Second] -- list of finish time
+    , waitTime    :: [Second]
     , queueLength :: [Int]
     }
     deriving (Show)
