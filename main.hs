@@ -26,6 +26,7 @@ instance Show Customer where
   show CRed    = "Customer Red"
   show CBlue   = "Customer Blue"
 
+-- Returns the probability that the next customer arrives after *t* second(s)
 f :: (Floating a) => a -> a
 f t = 1 - exp ((- t) / alpha')
   where
@@ -77,6 +78,9 @@ getWaitTimes = (fmap waitTime .) . simulateQueue
 getQueueLengths :: Int -> Customer -> IO [Int]
 getQueueLengths = (fmap queueLength .) . simulateQueue
 
+-- Simulates *c* customer(s) coming in to the bank, and produces the
+-- wait time and queue length for all the customers, referencing this video
+-- https://www.youtube.com/watch?v=aqAPH5GZBLg
 simulateQueue :: Int -> Customer -> IO Time
 simulateQueue cases c = foldM g mkTime [1..cases]
   where
@@ -84,12 +88,16 @@ simulateQueue cases c = foldM g mkTime [1..cases]
     g t@(Time {..}) _ = do
       x <- liftIO $ randomIO
       let
+        -- Randomly generate the customer arrival time and processing time
+        -- for the customer
         nextArrivalTime = fromIntegral $ f' x
+        processTime = ptFn c x
+        -- The time that the customer arrived
         clockTime = nextArrivalTime + prevClock
+        -- The time that the customer speaks to the teller
         startTime = if clockTime < prevFinish
                       then prevFinish
                       else prevFinish + (clockTime - prevFinish)
-        processTime = ptFn c x
         finish = startTime + processTime
         newWaitTime = finish - clockTime
         -- remove finished customer
