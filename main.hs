@@ -17,7 +17,6 @@ import           System.Random
 import           Util
 
 type Second = Double
-type Rate = Double
 
 data Customer
   = CYellow
@@ -36,29 +35,19 @@ f t = 1 - exp ((- t) / alpha')
     alpha' = 100
 
 -- Inverse function of f, return time (in seconds) given a probability
-f' :: (Floating a, RealFrac a) => a -> a
-f' t = fromIntegral . round $ -alpha' * log (1 - t)
+f' :: (Floating a, RealFrac a) => a -> Integer
+f' t = round $ -alpha' * log (1 - t)
   where
     alpha' = 100
 
 class ProcessingTime a where
-  alpha :: Num b => a -> b
-  beta :: Num b => a -> b
+  alpha :: a -> Integer
+  beta :: a -> Integer
 
   ptFn :: a -> Double -> Second
   ptFn a x = p * (x ^ (alpha a - 1)) * ((1 - x) ^ (beta a - 1))
     where
       p = 200
-
-  meanTime :: a -> Second
-  meanTime a = ptFn a meanX
-    where
-      meanX = alpha a / (alpha a + beta a)
-
-  modeTime :: a -> Second
-  modeTime a = ptFn a modeX
-    where
-      modeX = (alpha a - 1) / (alpha a + beta a - 2)
 
 instance ProcessingTime Customer where
   alpha CYellow = 2
@@ -68,9 +57,6 @@ instance ProcessingTime Customer where
   beta CYellow = 5
   beta CRed    = 2
   beta CBlue   = 1
-
-rateOf :: Second -> Rate
-rateOf t = 1 / t
 
 printPrefix :: (Show a) => String -> a -> IO ()
 printPrefix pre a = putStr pre >> putStr ": " >> print a
@@ -101,7 +87,7 @@ simulateQueue cases c = foldM g mkTime [1..cases]
     g t@(Time {..}) _ = do
       x <- liftIO $ randomIO
       let
-        nextArrivalTime = f' x
+        nextArrivalTime = fromIntegral $ f' x
         clockTime = nextArrivalTime + prevClock
         startTime = if clockTime < prevFinish
                       then prevFinish
@@ -109,6 +95,7 @@ simulateQueue cases c = foldM g mkTime [1..cases]
         processTime = ptFn c x
         finish = startTime + processTime
         newWaitTime = finish - clockTime
+        -- remove finished customer
         newQueue = finish : filter (> clockTime) prevQueue
 
       return $
@@ -119,27 +106,30 @@ simulateQueue cases c = foldM g mkTime [1..cases]
           , queueLength = length newQueue : queueLength
           }
 
-mean :: (Real a, Fractional b) => [a] -> b
+mean :: (Real a) => [a] -> Double
 mean xs = realToFrac (sum xs) / genericLength xs
 
-task1 :: IO ()
-task1 = do
+task1 :: Int -> IO ()
+task1 cases = do
+  putStrLn "----"
   putStrLn "Task 1"
-  wt <- getWaitTimes 1000000 CYellow
+  wt <- getWaitTimes cases CYellow
   printPrefix "Mean" $ mean wt
   printPrefix "Mode" $ maximum wt
 
-task2 :: IO ()
-task2 = do
+task2 :: Int -> IO ()
+task2 cases = do
+  putStrLn "----"
   putStrLn "Task 2"
-  ql <- getQueueLengths 10000 CRed
+  ql <- getQueueLengths cases CRed
   printPrefix "Mean" $ mean ql
   printPrefix "Mode" $ maximum ql
 
-task3 :: IO ()
-task3 = do
+task3 :: Int -> IO ()
+task3 cases = do
+  putStrLn "----"
   putStrLn "Task 3"
-  wts <- mapM (getWaitTimes 1000000) $ enumFrom CYellow
+  wts <- mapM (getWaitTimes cases) $ enumFrom CYellow
 
   let (c, _) = minWith
           (\(_, xs) ->
@@ -151,6 +141,7 @@ task3 = do
 
 main :: IO ()
 main = do
-  -- task1
-  task2
-  -- task3C
+  let cases = 1000000
+  task1 cases
+  task2 cases
+  task3 cases
