@@ -23,8 +23,8 @@ data Customer' (c :: CustomerType) where
   CRed :: Customer' 'Red
   CBlue :: Customer' 'Blue
 
-data Customer where
-  Customer :: forall (c :: CustomerType). ProcessingTime (Customer' c) => Customer' c -> Customer
+data Customer =
+  forall (c :: CustomerType). ProcessingTime (Customer' c) => Customer (Customer' c)
 
 -- | Use an existential wrapper and an eliminator
 toCustomer :: CustomerType -> Customer
