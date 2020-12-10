@@ -1,9 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 module Main where
 
@@ -15,29 +9,16 @@ import Util ( minWith )
 
 type Second = Double
 
-data CustomerType = Yellow | Red | Blue
-  deriving (Eq, Enum, Show)
+data Customer
+  = CYellow
+  | CRed
+  | CBlue
+  deriving (Eq, Enum)
 
-data Customer' (c :: CustomerType) where
-  CYellow :: Customer' 'Yellow
-  CRed :: Customer' 'Red
-  CBlue :: Customer' 'Blue
-
-data Customer =
-  forall (c :: CustomerType). ProcessingTime (Customer' c) => Customer (Customer' c)
-
--- | Use an existential wrapper and an eliminator
-toCustomer :: CustomerType -> Customer
-toCustomer Yellow = Customer CYellow
-toCustomer Red = Customer CRed
-toCustomer Blue = Customer CBlue
-
--- | Eliminator
-withCustomer
-    :: Customer
-    -> (forall (b :: CustomerType). ProcessingTime (Customer' b) => Customer' b -> r)
-    -> r
-withCustomer (Customer c) f = f c
+instance Show Customer where
+  show CYellow = "Customer Yellow"
+  show CRed    = "Customer Red"
+  show CBlue   = "Customer Blue"
 
 -- | Returns the probability that the next customer arrives after *t* second(s)
 f :: (Floating a) => a -> a
@@ -62,17 +43,14 @@ class ProcessingTime a where
     where
       p = 200
 
-instance ProcessingTime (Customer' 'Yellow) where
-  alpha _ = 2
-  beta _ = 5
+instance ProcessingTime Customer where
+  alpha CYellow = 2
+  alpha CRed    = 2
+  alpha CBlue   = 5
 
-instance ProcessingTime (Customer' 'Red) where
-  alpha _ = 2
-  beta _ = 2
-
-instance ProcessingTime (Customer' 'Blue) where
-  alpha _ = 5
-  beta _ = 1
+  beta CYellow = 5
+  beta CRed    = 2
+  beta CBlue   = 1
 
 printPrefix :: (Show a) => String -> a -> IO ()
 printPrefix pre a = putStr pre >> putStr ": " >> print a
@@ -109,7 +87,7 @@ simulateQueue cases c = foldM g mkTime [1..cases]
         -- Randomly generate the customer arrival time and processing time
         -- for the customer
         nextArrivalTime = fromIntegral $ f' x
-        processTime = withCustomer c $ \c' -> pdFn c' x
+        processTime = pdFn c x
         -- The time that the customer arrived
         clockTime = nextArrivalTime + prevClock
         -- The time that the customer speaks to the teller
@@ -136,7 +114,7 @@ task1 :: Int -> IO ()
 task1 cases = do
   putStrLn "----"
   putStrLn "Task 1"
-  wt <- getWaitTimes cases (toCustomer Yellow)
+  wt <- getWaitTimes cases CYellow
   printPrefix "Mean" $ mean wt
   printPrefix "Mode" $ maximum wt
 
@@ -144,7 +122,7 @@ task2 :: Int -> IO ()
 task2 cases = do
   putStrLn "----"
   putStrLn "Task 2"
-  ql <- getQueueLengths cases (toCustomer Red)
+  ql <- getQueueLengths cases CRed
   printPrefix "Mean" $ mean ql
   printPrefix "Mode" $ maximum ql
 
@@ -152,14 +130,14 @@ task3 :: Int -> IO ()
 task3 cases = do
   putStrLn "----"
   putStrLn "Task 3"
-  wts <- mapM (getWaitTimes cases) $ toCustomer <$> enumFrom Yellow
+  wts <- mapM (getWaitTimes cases) $ enumFrom CYellow
 
   let (c, _) = minWith
           (\(_, xs) ->
             let meanTime = mean xs
                 modeTime = maximum xs
             in abs $ meanTime - modeTime)
-          $ zip (enumFrom Yellow) wts
+          $ zip (enumFrom CYellow) wts
   print c
 
 main :: IO ()
