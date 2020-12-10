@@ -4,7 +4,8 @@
 
 #### With stack
 
-Simply run
+Simply build an run
 ``` shell
-stack main.hs
+stack build
+stack run
 ```
