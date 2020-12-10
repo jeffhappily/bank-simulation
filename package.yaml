@@ -1,0 +1,22 @@
+name: bank-simulation
+version: 0.1.1
+author: Jeff
+maintainer: goodboy96@live.com.my
+copyright: ! 'Copyright: (c) 2020 Jeff Happily'
+license: MIT
+homepage: https://github.com/jeffhappily/bank-simulation
+
+executables:
+  bank-simulation:
+    main: Main.hs
+    source-dirs: .
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -optP-Wno-nonportable-include-path # For macos
+    dependencies:
+    - base
+    - random
+    - ghc
+    - mtl
